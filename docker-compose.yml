@@ -1,0 +1,35 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: soap-app:latest
+    container_name: soap-app
+    restart: unless-stopped
+    environment:
+      APP_ENV: local
+      LOG_CHANNEL: stderr
+    volumes:
+      - ./:/var/www/html
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  web:
+    image: nginx:1.27-alpine
+    container_name: soap-web
+    restart: unless-stopped
+    depends_on:
+      - app
+    ports:
+      - "8080:80"
+    volumes:
+      - ./:/var/www/html:ro
+      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+    environment:
+      NGINX_ENTRYPOINT_QUIET_LOGS: "1"
+
+networks:
+  default:
+    name: soap-net
+
+

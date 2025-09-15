@@ -42,7 +42,7 @@ RUN mkdir -p storage bootstrap/cache \
 
 USER www-data
 
-EXPOSE 9000
+EXPOSE 9986
 CMD ["php-fpm"]
 
 

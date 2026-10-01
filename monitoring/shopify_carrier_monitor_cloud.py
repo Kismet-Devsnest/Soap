@@ -74,6 +74,12 @@ def unlock_storefront(page) -> None:
             "Storefront is password-protected and SHOPIFY_STOREFRONT_PASSWORD is not set."
         )
     pw = page.locator("input[type='password']").first
+    if not pw.is_visible():
+        # Newer themes hide the field behind an "Enter using password" link.
+        try:
+            page.get_by_text("Enter using password").first.click(timeout=5000)
+        except Exception:
+            pass
     pw.wait_for(state="visible", timeout=10000)
     pw.fill(STOREFRONT_PASSWORD)
     pw.press("Enter")

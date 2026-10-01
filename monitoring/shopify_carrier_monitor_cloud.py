@@ -114,6 +114,15 @@ def wait_for_shipping_rates_on_page(page, timeout_ms: int = 35000) -> None:
         "input[type='radio']:visible, [role='radio']:visible",
         timeout=timeout_ms,
     )
+    # Shopify first renders skeleton radios while the carrier service
+    # responds; wait until at least one option has a real label.
+    page.wait_for_function(
+        """() => [...document.querySelectorAll("input[type='radio']")].some(el => {
+            const lb = (el.labels && el.labels[0]) || el.closest('label');
+            return lb && lb.offsetParent && lb.innerText.trim().length > 0;
+        })""",
+        timeout=timeout_ms,
+    )
 
 
 def collect_visible_shipping_labels(page) -> list[str]:

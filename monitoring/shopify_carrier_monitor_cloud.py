@@ -19,8 +19,11 @@ from playwright.sync_api import sync_playwright
 # Cloud-monitor configuration.
 # Keep this small per scheduled run; let Claude's scheduler invoke it again.
 NUM_RUNS = int(os.getenv("NUM_RUNS", "3"))
-STEP_DELAY_SEC = float(os.getenv("STEP_DELAY_SEC", "2"))
-DELAY_BETWEEN_RUNS_SEC = float(os.getenv("DELAY_BETWEEN_RUNS_SEC", "5"))
+STEP_DELAY_SEC = float(os.getenv("STEP_DELAY_SEC", "7"))
+DELAY_BETWEEN_RUNS_SEC = float(os.getenv("DELAY_BETWEEN_RUNS_SEC", "10"))
+# Visible (headed) browser by default, like the locally working script.
+# run_monitor.sh provides a virtual display (Xvfb) in the cloud.
+HEADLESS = os.getenv("HEADLESS", "0") == "1"
 
 STORE_BASE = os.getenv("STORE_BASE", "https://vefd28-bb.myshopify.com").rstrip("/")
 if not STORE_BASE.startswith(("http://", "https://")):
@@ -254,15 +257,18 @@ def run_once(browser, run_number: int) -> dict:
         result["stage"] = "open_product"
         page.goto(product_url, wait_until="domcontentloaded")
         page.wait_for_timeout(1500)
+        time.sleep(STEP_DELAY_SEC)
 
         # 3. Add to cart.
         result["stage"] = "add_to_cart"
         page.get_by_test_id("standalone-add-to-cart").click()
         page.wait_for_timeout(1500)
+        time.sleep(STEP_DELAY_SEC)
 
         # 4. Checkout.
         result["stage"] = "open_checkout"
         page.goto(f"{STORE_BASE}/checkout", wait_until="domcontentloaded")
+        time.sleep(STEP_DELAY_SEC)
 
         page.wait_for_selector(
             "input[name='email'], input#email, "
@@ -270,6 +276,7 @@ def run_once(browser, run_number: int) -> dict:
             state="visible",
             timeout=20000,
         )
+        time.sleep(STEP_DELAY_SEC)
 
         # 5. Contact email.
         result["stage"] = "fill_email"
@@ -382,6 +389,8 @@ def run_once(browser, run_number: int) -> dict:
             contact["zip"],
         )
 
+        time.sleep(STEP_DELAY_SEC)
+
         # 9. Wait for shipping rates.
         result["stage"] = "wait_for_shipping_rates"
         wait_for_shipping_rates_on_page(page)
@@ -434,7 +443,7 @@ def main() -> int:
     started = datetime.now(timezone.utc).isoformat()
     print(f"SHOPIFY CARRIER MONITOR START {started}")
     print(f"Store: {STORE_BASE}")
-    print(f"Runs: {NUM_RUNS}")
+    print(f"Runs: {NUM_RUNS} (headless={HEADLESS}, step delay={STEP_DELAY_SEC}s)")
     print(
         f"Expected: {EXPECTED_RATE_NAME} / "
         f"{EXPECTED_RATE_AMOUNT} {EXPECTED_CURRENCY}"
@@ -443,7 +452,7 @@ def main() -> int:
     results = []
 
     with sync_playwright() as p:
-        browser = p.chromium.launch(headless=True, args=chromium_args())
+        browser = p.chromium.launch(headless=HEADLESS, args=chromium_args())
 
         try:
             for run in range(1, NUM_RUNS + 1):

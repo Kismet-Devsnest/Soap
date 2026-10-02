@@ -54,7 +54,10 @@ PROXY_CA = Path(os.getenv("PROXY_CA_CERT", "/root/.ccr/agent-proxy-ca.crt"))
 
 
 def chromium_args() -> list[str]:
-    if not PROXY_CA.exists():
+    try:
+        if not PROXY_CA.is_file():
+            return []
+    except OSError:  # e.g. /root unreadable on GitHub Actions runners
         return []
     pub = subprocess.run(
         ["openssl", "x509", "-in", str(PROXY_CA), "-pubkey", "-noout"],

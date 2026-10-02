@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Entry point for the hourly Claude cloud scheduled task.
+# Entry point for the carrier monitor (GitHub Actions or local).
 # Installs Python Playwright if missing (Chromium is pre-installed at
 # /opt/pw-browsers in the cloud image), then runs the monitor (visible browser on a virtual display by default).
 set -uo pipefail
